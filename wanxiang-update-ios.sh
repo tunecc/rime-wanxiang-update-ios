@@ -368,34 +368,45 @@ update_schema() {
   extract_zip "$TEMP_DIR/$name" "$TEMP_DIR/${name%.zip}"
   local src="$TEMP_DIR/${name%.zip}"
 
-  # 删除各端专用文件
+  # 删除各端专用文件(方案包里夹带的非 iOS 配置)
   for _f in "${DELETE_FILES[@]}"; do
     [[ -f "$src/$_f" ]] && rm -rf "${src:?}/${_f:?}"
   done
 
-  # 备份排除项(用户数据库 / custom 等) 到解压目录, 稍后随整目录覆盖回去
-  if [[ -f "$EXCLUDE_FILE" ]]; then
-    while IFS= read -r _line; do
-      [[ "$_line" == \#* || -z "$_line" ]] && continue
-      local excl rel
-      while IFS= read -r excl; do
-        [[ -e "$excl" ]] || continue
-        rel="${excl#$DEPLOY_DIR/}"
-        mkdir -p "$(dirname "$src/$rel")"
-        cp -rf "$excl" "$src/$rel"
-      done < <(find "$DEPLOY_DIR" -path "$DEPLOY_DIR/$_line" -print0 2>/dev/null | tr '\0' '\n')
-    done <"$EXCLUDE_FILE"
-    log INFO "已按排除清单保留用户文件"
-  fi
-
-  # 单独保留语法模型(方案包不含 gram, 避免被清空)
-  [[ -f "$DEPLOY_DIR/$GRAM_NAME" ]] && cp -rf "$DEPLOY_DIR/$GRAM_NAME" "$src/$GRAM_NAME"
-
-  # 覆盖部署目录
+  # === 增量同步到 DEPLOY_DIR (与原版 Python apply_update 语义一致) ===
+  # 关键: 绝不整目录清空 DEPLOY_DIR — *.userdb(用户学习库, 含 LOG/CURRENT 等 LevelDB
+  # 文件)、*.custom.yaml、gram 模型等都由部署/输入时生成, 不在方案包里, 一旦清空就丢失,
+  # 且会导致部署时 AppGroup→Documents 同步 userdb 撞 "File exists" (NSCocoaErrorDomain 516) 报错。
+  # 做法: 方案包里有的文件直接覆盖进去(命中排除清单则跳过, 保护用户已有同名文件);
+  # 新包不再带的旧方案文件留在原地(无害, 避免误删用户文件)。
+  # 注意 bash 的 [[ $rel == $pat ]] 里 * 跨 / (与 Python fnmatch 一致), 而 case 的 * 不跨 /。
   mkdir -p "$DEPLOY_DIR"
-  rm -rf "${DEPLOY_DIR:?}"/* 2>/dev/null
-  cp -rf "$src"/* "$DEPLOY_DIR/"
 
+  local manifest="$TEMP_DIR/schema_manifest.txt"
+  ( cd "$src" && find . -type f | sed 's|^\./||' ) >"$manifest"
+
+  # 把新方案文件覆盖进 DEPLOY_DIR, 命中排除清单则跳过(保护用户已有同名文件)
+  local rel _p hit
+  while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    rel="${f#./}"
+    # 命中排除清单则跳过: [[ ]] 里 * 跨 /, 对齐 Python fnmatch
+    hit="false"
+    if [[ -f "$EXCLUDE_FILE" ]]; then
+      while IFS= read -r _p; do
+        [[ "$_p" == \#* || -z "$_p" ]] && continue
+        [[ "$rel" == $_p ]] && { hit="true"; break; }
+      done <"$EXCLUDE_FILE"
+    fi
+    if [[ "$hit" == "true" ]]; then
+      log INFO "跳过排除文件(保留本地): $rel"
+      continue
+    fi
+    mkdir -p "$DEPLOY_DIR/$(dirname "$rel")"
+    cp -rf "$src/$rel" "$DEPLOY_DIR/$rel"
+  done <"$manifest"
+
+  log INFO "已增量同步方案文件 (用户库/custom/模型原地保留)"
   NEEDED_DEPLOY="true"
   log INFO "方案更新成功 ($remote_version)"
   return 0
