@@ -40,8 +40,8 @@
 
 ## 7. 复审修复（Verify 返回 Build）
 
-- [ ] 7.1 GitHub releases 补充分页：`page=N&per_page=100` 循环合并，保留安全上限，方案与词库仍共用同一份缓存（验证：GitHub fixture 第 1 页 100 条、第 2 页非空、第 3 页为空时合并数量正确；一次运行 releases 端点被请求 3 次且 `--tags/LTS` 不参与分页） <!-- comet-task:e88067f3-5b33-4368-910d-25ba03cdbea4 -->
-- [ ] 7.2 方案判定修正：本地哈希记录缺失时必须更新一次，即使远端未提供 sha256；已有记录且远端无哈希时按版本跳过（验证：`scheme_decision` 在记录缺失/远端空哈希时返回 `update`） <!-- comet-task:cff45634-ab37-48b7-91c1-1719cd94ed3a -->
-- [ ] 7.3 校验缺口：大小无法比较且无哈希工具时校验失败并删除文件，避免未经校验的包进入应用阶段（验证：远端大小非数字、隐藏哈希工具时校验返回非零） <!-- comet-task:859267d8-3b34-4431-a031-81d1d845c1aa -->
-- [ ] 7.4 记录写入失败处理：方案与模型的哈希记录写入失败时判定更新失败，不静默忽略（验证：让记录路径不可写（同名目录）后运行方案更新，返回非零且 `UPDATE_FAILED=true`） <!-- comet-task:2ea7a52a-a07f-4cc2-8357-28472613a37e -->
-- [ ] 7.5 测试补强：CNB 分页改为两页非空后合并、GitHub 分页用例、方案成功更新用例与 `scheme_decision` 记录缺失用例，全量测试在 bash 5 与 `/bin/bash` 下通过（验证：`bash tests/test-wanxiang-update.sh` 与 `/bin/bash tests/test-wanxiang-update.sh` 均 0 失败） <!-- comet-task:90a9a0b0-2f14-4a04-9d33-5fb5e7d4f452 -->
+- [x] 7.1 GitHub releases 补充分页：`page=N&per_page=100` 循环合并，保留安全上限，方案与词库仍共用同一份缓存（验证：GitHub fixture 第 1 页 100 条、第 2 页非空、第 3 页为空时合并数量正确；一次运行 releases 端点被请求 3 次且 `--tags/LTS` 不参与分页） <!-- comet-task:e88067f3-5b33-4368-910d-25ba03cdbea4 -->
+- [x] 7.2 方案判定修正：本地哈希记录缺失时必须更新一次，即使远端未提供 sha256；已有记录且远端无哈希时按版本跳过（验证：`scheme_decision` 在记录缺失/远端空哈希时返回 `update`） <!-- comet-task:cff45634-ab37-48b7-91c1-1719cd94ed3a -->
+- [x] 7.3 校验缺口：大小无法比较且无哈希工具时校验失败并删除文件，避免未经校验的包进入应用阶段（验证：远端大小非数字、隐藏哈希工具时校验返回非零） <!-- comet-task:859267d8-3b34-4431-a031-81d1d845c1aa -->
+- [x] 7.4 记录写入失败处理：方案与模型的哈希记录写入失败时判定更新失败，不静默忽略（验证：让记录路径不可写（同名目录）后运行方案更新，返回非零且 `UPDATE_FAILED=true`） <!-- comet-task:2ea7a52a-a07f-4cc2-8357-28472613a37e -->
+- [x] 7.5 测试补强：CNB 分页改为两页非空后合并、GitHub 分页用例、方案成功更新用例与 `scheme_decision` 记录缺失用例，全量测试在 bash 5 与 `/bin/bash` 下通过（验证：`bash tests/test-wanxiang-update.sh` 与 `/bin/bash tests/test-wanxiang-update.sh` 均 0 失败） <!-- comet-task:90a9a0b0-2f14-4a04-9d33-5fb5e7d4f452 -->
