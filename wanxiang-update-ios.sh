@@ -128,12 +128,14 @@ verify_file_size_hash() { # $1 file  $2 expected_size  $3 expected_hash  $4 labe
     rm -f "$file"
     return 1
   fi
+  local size_verified="false"
   if is_uint "$expected" && is_uint "$actual"; then
     if [[ "$actual" -ne "$expected" ]]; then
       log ERROR "$label 大小不符 (期望 $expected, 实际 $actual)"
       rm -f "$file"
       return 1
     fi
+    size_verified="true"
     log INFO "$label 大小校验通过 ($actual 字节)"
   else
     log WARN "$label 跳过大小校验 (远端=$expected 本地=$actual)"
@@ -141,10 +143,20 @@ verify_file_size_hash() { # $1 file  $2 expected_size  $3 expected_hash  $4 labe
 
   if [[ -z "$expected_hash" ]]; then
     log WARN "$label 远端未提供 sha256, 跳过内容校验"
+    if [[ "$size_verified" != "true" ]]; then
+      log ERROR "$label 大小与哈希均无法校验, 已删除"
+      rm -f "$file"
+      return 1
+    fi
     return 0
   fi
   if ! detect_hash_tool; then
     log WARN "$label 缺少 shasum/sha256sum, 跳过内容校验"
+    if [[ "$size_verified" != "true" ]]; then
+      log ERROR "$label 缺少哈希工具且大小无法比较, 已删除"
+      rm -f "$file"
+      return 1
+    fi
     return 0
   fi
   local actual_hash; actual_hash=$(normalize_hash "$(local_sha256 "$file")")
@@ -390,21 +402,46 @@ GITHUB_ERROR=""
 cache_github() { # $1 = 文件名  $2 = api url ; 成功返回0, 失败返回1(原因写入 GITHUB_ERROR)
   local out="$TEMP_DIR/$1" url="$2"
   [[ -f "$out" ]] && return 0
-  case "$url" in
-    *\?*) url="${url}&per_page=100" ;;
-    *)    url="${url}?per_page=100" ;;
-  esac
-  if ! http_get "$url" "$out" "Accept: application/vnd.github.v3+json"; then
-    rm -f "$out"
-    GITHUB_ERROR="网络/代理连接失败或 HTTP 错误"
-    return 1
-  fi
-  # 正常响应是数组或 release 对象; 若仍是 {"message": "..."} 则暴露真实原因
-  GITHUB_ERROR=$(jq -r 'if type == "object" and .message and (.tag_name == null) then .message else empty end' "$out" 2>/dev/null)
-  if [[ -n "$GITHUB_ERROR" ]]; then
-    rm -f "$out"
-    return 1
-  fi
+  local page_file="$TEMP_DIR/${1%.json}_page.json"
+  local merged="$TEMP_DIR/${1%.json}_merged.json" next="$TEMP_DIR/${1%.json}_next.json"
+  local page page_url release_count completed="false"
+  printf '[]\n' >"$merged"
+  for ((page=1; page<=100; page++)); do
+    case "$url" in
+      *\?*) page_url="${url}&page=${page}&per_page=100" ;;
+      *)    page_url="${url}?page=${page}&per_page=100" ;;
+    esac
+    if ! http_get "$page_url" "$page_file" "Accept: application/vnd.github.v3+json"; then
+      rm -f "$page_file" "$merged"
+      GITHUB_ERROR="网络/代理连接失败或 HTTP 错误"
+      return 1
+    fi
+    # 正常响应是数组; 若仍是 {"message": "..."} 则暴露真实原因
+    GITHUB_ERROR=$(jq -r 'if type == "object" and .message and (.tag_name == null) then .message else empty end' "$page_file" 2>/dev/null)
+    if [[ -n "$GITHUB_ERROR" ]]; then
+      rm -f "$page_file" "$merged"
+      return 1
+    fi
+    if ! jq -e 'type == "array"' "$page_file" >/dev/null 2>&1; then
+      # 单 release 端点 (如 /releases/tags/LTS) 没有分页
+      if [[ "$page" -eq 1 ]]; then
+        mv "$page_file" "$out"
+        rm -f "$merged"
+        return 0
+      fi
+      rm -f "$page_file" "$merged"
+      GITHUB_ERROR="GitHub 返回非法 JSON"
+      return 1
+    fi
+    release_count=$(jq 'length' "$page_file")
+    if [[ "$release_count" -eq 0 ]]; then completed="true"; rm -f "$page_file"; break; fi
+    jq -s '.[0] + .[1]' "$merged" "$page_file" >"$next" \
+      || { rm -f "$page_file" "$next" "$merged"; GITHUB_ERROR="合并 GitHub 分页失败"; return 1; }
+    mv "$next" "$merged"
+    rm -f "$page_file"
+  done
+  [[ "$completed" == "true" ]] || { rm -f "$merged"; GITHUB_ERROR="GitHub 分页超过安全上限"; return 1; }
+  mv "$merged" "$out"
   return 0
 }
 
@@ -623,7 +660,9 @@ scheme_decision() { # $1 remote_version  $2 remote_hash  $3 local_version  $4 lo
     0) printf 'downgrade\n'; return 0 ;;
     2) printf 'unknown\n'; return 0 ;;
   esac
-  if [[ -z "$rh" ]]; then
+  if [[ -z "$lh" ]]; then
+    printf 'update\n'   # 记录缺失: 更新一次以补齐模板与记录
+  elif [[ -z "$rh" ]]; then
     printf 'skip\n'
   elif [[ "$rh" == "$lh" ]]; then
     printf 'skip\n'
@@ -704,7 +743,12 @@ update_schema() {
 
   if [[ -n "$remote_hash" ]]; then
     mkdir -p "$DEPLOY_DIR/custom"
-    printf '%s\n' "$remote_hash" >"$record_file"
+    if ! printf '%s\n' "$remote_hash" >"$record_file"; then
+      log ERROR "写入方案哈希记录失败: $record_file"
+      UPDATE_FAILED="true"
+      NEEDED_DEPLOY="true"
+      return 1
+    fi
   else
     log WARN "远端未提供方案 sha256, 本次跳过内容记录"
   fi
@@ -849,7 +893,12 @@ update_gram() {
 
   if [[ -n "$remote_hash" ]]; then
     mkdir -p "$DEPLOY_DIR/custom"
-    printf '%s\n' "$remote_hash" >"$record_file"
+    if ! printf '%s\n' "$remote_hash" >"$record_file"; then
+      log ERROR "写入模型哈希记录失败: $record_file"
+      UPDATE_FAILED="true"
+      NEEDED_DEPLOY="true"
+      return 1
+    fi
   else
     log WARN "远端未提供模型 sha256, 本次跳过内容记录"
   fi

@@ -2,7 +2,7 @@
 change_id: 7bfc6ce7-c7d7-422d-83e7-6661bcd65f33
 workflow: full
 language: zh-CN
-phase: verify
+phase: build
 context_compression: off
 build_mode: autonomous
 build_pause: null
@@ -15,8 +15,8 @@ auto_transition: true
 base_ref: af5ae0540c80f8b4137d3c872514294fa3cd2c5e
 design_doc: docs/openspec/changes/harden-ios-updater/design.md
 plan: docs/superpowers/plans/2026-10-26-harden-ios-updater.md
-verify_result: pending
-verify_failures: 0
+verify_result: fail
+verify_failures: 1
 verification_report: null
 branch_status: pending
 created_at: 2026-10-26
@@ -31,7 +31,7 @@ classic_profile: null
 classic_migration: null
 run_checkpoint:
   schema: comet.workflow-run-checkpoint.v1
-  hash: 342b6c45e886a1ad220f40f78d92795ec087f62ecbfb77b332115f9f1641bb80
+  hash: 34e08d5a1b3e57e116690d8f494677e75c36c08bcd258825d9c6c597c33e7340
   run:
     protocolVersion: 1
     schemaVersion: 1
@@ -56,7 +56,7 @@ run_checkpoint:
       branchStatus: pending
       buildMode: autonomous
       buildPause: null
-      checkEpoch: 3
+      checkEpoch: 4
       classicMigration: null
       classicProfile: null
       contextCompression: off
@@ -67,19 +67,19 @@ run_checkpoint:
       handoffHash: 427198dfab2cdcde3ba10227dc3fcdb642bc98385a77dc216cdd214980238c29
       isolation: current
       language: zh-CN
-      phase: verify
+      phase: build
       plan: docs/superpowers/plans/2026-10-26-harden-ios-updater.md
       reviewMode: standard
       subagentDispatch: null
       tddMode: tdd
       verificationReport: null
       verifiedAt: null
-      verifyFailures: 0
+      verifyFailures: 1
       verifyMode: null
-      verifyResult: pending
+      verifyResult: fail
       workflow: full
     status: running
-    sequence: 16
+    sequence: 17
     actions:
       - attempt: 1
         claim:
@@ -1112,6 +1112,14 @@ run_checkpoint:
         stepId: full.build.check
         type: call_tool
       - attempt: 1
+        claim:
+          executorId: comet-classic-state
+          token: portable-cb379c4dbb459bc3d31ec3af1da8f05825d997d69997af0dd7ce454712b4f3f8
+        executionOrigin:
+          workflow:
+            hash: ee198afdb53add0c23f98202aae8cdbe4079b9f4ebf7a62ed4ab8411ed591db5
+            id: comet-classic-full
+            version: "1"
         id: harden-ios-updater:16
         input:
           input:
@@ -1285,15 +1293,216 @@ run_checkpoint:
             full.open.revalidate:
               contentHash: 8be227c5c2267038dd1cc8b27f9ebd88c90bbee6085cbf52e1837e27193210f9
         inputHash: bd11a764a9ce742e837dd8aaa09f552f657c43ac23408f212a229616f52c5fc7
+        outcome:
+          actionId: harden-ios-updater:16
+          attempt: 1
+          claimToken: portable-cb379c4dbb459bc3d31ec3af1da8f05825d997d69997af0dd7ce454712b4f3f8
+          inputHash: bd11a764a9ce742e837dd8aaa09f552f657c43ac23408f212a229616f52c5fc7
+          outcomeId: c46074e4-3a4e-4ee6-8c1d-45f69db5f078
+          output:
+            event: verify-fail
+            reason: "最终集成审查发现 2 个 IMPORTANT: GitHub release 未分页; 方案记录缺失且远端无 sha256
+              时误跳过。另修复校验缺口与测试强度。"
+          status: succeeded
         protocolVersion: 1
-        receipts: []
+        receipts:
+          - hash: 1bd31edf4298a8bdb1f9ec2d2081dbb32665c2be0c15c61d54a36551945a1934
+            outcomeId: c46074e4-3a4e-4ee6-8c1d-45f69db5f078
         reconciliations: []
         ref: comet-verify
         requiredCapabilities: []
         retry: manual
         runId: harden-ios-updater
-        status: pending
+        status: succeeded
         stepId: full.verify.run
+        type: invoke_skill
+      - attempt: 1
+        id: harden-ios-updater:17
+        input:
+          input:
+            change: harden-ios-updater
+            changeDir: docs/openspec/changes/harden-ios-updater
+          outputs:
+            full.build.check:
+              argv:
+                - bash
+                - tests/test-wanxiang-update.sh
+              changedDuringExecution: []
+              checkEpoch: 2
+              contentHash: a37891dc8a0c405603e5434d4a125e765e87a6d72a053dc1253c88d82230eea3
+              cwd: .
+              environment: ba86e99c2ccdc82ab6c128ce894e7c25f2761c81d549d9dac467ed130e494d0f
+              exitCode: 0
+              inputAfter: 87d5b403d850c0a8ff65e896b25887b130f9c3629cafa304e2e315a8402b29e4
+              inputBefore: 87d5b403d850c0a8ff65e896b25887b130f9c3629cafa304e2e315a8402b29e4
+              manifestHash: f6fe0bfc9e1af4e47e82c7d62bdd0b4c299dc182379702d5982364f223c6149c
+              manifestRef: .comet/runtime/classic-sdk-checks/efa5030dbfaa830412047ef5e022ba09e2e279e4100a13a4400c0c1b38a71558/c5303ead-6a7d-4003-beac-52b235927327.manifest
+              receiptRef: .comet/runtime/classic-sdk-checks/efa5030dbfaa830412047ef5e022ba09e2e279e4100a13a4400c0c1b38a71558/efb60fbc-0ef5-48ae-a9bd-a4fe68906405.log
+              reusable: true
+              reused: false
+              scope: build
+              tier: full
+              timeoutMs: 300000
+            full.build.check.evidence:
+              contentHash: a37891dc8a0c405603e5434d4a125e765e87a6d72a053dc1253c88d82230eea3
+              ref: .comet/runtime/classic-sdk-checks/efa5030dbfaa830412047ef5e022ba09e2e279e4100a13a4400c0c1b38a71558/efb60fbc-0ef5-48ae-a9bd-a4fe68906405.log
+            full.build.configure:
+              boundBranch: main
+              buildMode: autonomous
+              directOverride: false
+              isolation: current
+              reviewMode: standard
+              subagentDispatch: null
+              tddMode: tdd
+            full.build.confirm:
+              choice: approved
+              proposal:
+                input:
+                  change: harden-ios-updater
+                  changeDir: docs/openspec/changes/harden-ios-updater
+                outputs:
+                  full.build.configure:
+                    boundBranch: main
+                    buildMode: autonomous
+                    directOverride: false
+                    isolation: current
+                    reviewMode: standard
+                    subagentDispatch: null
+                    tddMode: tdd
+            full.build.execute:
+              event: build-complete
+            full.build.plan:
+              designEvidence:
+                contentHash: 93d7d1b6fc94b600d26411ce1bc9bb6ce6970154c63772c815904e013329da4b
+                ref: docs/openspec/changes/harden-ios-updater/design.md
+              plan: docs/superpowers/plans/2026-10-26-harden-ios-updater.md
+              planEvidence:
+                contentHash: cf949363a9fd6629f3b973ec2ad63a20019ea37f83f5d667cff038c0a5f81e09
+                ref: docs/superpowers/plans/2026-10-26-harden-ios-updater.md
+              taskRevision: 3f884e7af2745af3ea50085754c0436e7ca459df9cc5c29240cd5dda36cfb053
+            full.build.plan.evidence:
+              contentHash: cf949363a9fd6629f3b973ec2ad63a20019ea37f83f5d667cff038c0a5f81e09
+              ref: docs/superpowers/plans/2026-10-26-harden-ios-updater.md
+            full.design.confirm:
+              choice: approved
+              proposal:
+                input:
+                  change: harden-ios-updater
+                  changeDir: docs/openspec/changes/harden-ios-updater
+                outputs:
+                  full.design.handoff:
+                    handoffContext: docs/openspec/changes/harden-ios-updater/.comet/handoff/design-context.json
+                    handoffHash: 427198dfab2cdcde3ba10227dc3fcdb642bc98385a77dc216cdd214980238c29
+                    proposal: |-
+                      技术方案：
+                      1. 排除规则按模式是否含 / 区分：无 / 只匹配部署根目录，含 / 匹配完整相对路径；写入 custom/ 模板并保护根目录 *.custom.yaml。
+                      2. Release 按标题（万象拼音输入方案、词库/实时全量预览）+ tag 正则选择；移除 sort -V，改为逐段数值比较；标题未命中时按 tag 回退并告警。
+                      3. HTTP 使用 curl -fSL --retry / wget 重试；失败删除残包；应用前做大小 + sha256 校验；无哈希工具时告警降级，不判失败。
+                      4. 方案新增 custom/.scheme_sha256：同版本哈希不同则更新、记录缺失则更新一次、本地版本更高不降级、全部一致则跳过。
+                      5. 通用解压根：解压目录只有一个顶层目录时剥离，方案与词库共用。
+                      6. 词库先校验后解压覆盖；dicts/ 缺失或为空强制更新。
+                      7. 模型下载前比对本地文件哈希；下载到部署目录内临时文件，校验后 mv 原子替换。
+                      8. 参数解析前移：--help/--doctor 不依赖 jq；带值参数检查缺值；--depdir 按路径含 RimeUserData 推断元书，否则仓。
+                      9. CNB page_size=100、GitHub per_page=100，方案/词库共享 GitHub releases 缓存；移除 TOOLS_API。
+                      10. 保持 bash 3.2/BSD 兼容，不新增依赖；方案更新成功后清理 build/；保留旧方案文件和用户数据。
+
+                      关键取舍与风险：首次升级因哈希记录缺失会执行一次方案更新；无哈希工具时仅大小校验；CNB 分页参数或上游标题变化均有回退与告警。
+
+                      测试策略：bash -n 与 bash 3.2 兼容检查；fixture 验证 release 选择、版本比较、哈希判定；真实 zip 验证排除语义、解压根、build/ 清理与用户文件保留；故障注入 404/截断/坏哈希；CNB 与 GitHub 各一次端到端实测，模型验证已最新则跳过。
+
+                      Spec Patch：无。
+                    requirementsEvidence:
+                      contentHash: 5d6390d110bd56efe507e19e10469f4c13ddaaa613019827791683ee4a73dc8e
+                      ref: docs/openspec/changes/harden-ios-updater
+                    sourceEvidence:
+                      contentHash: 85d803c3a354933ac78c547d2d39a09cd423667985617bb754957c13cc2a0bb8
+                      ref: docs/openspec/changes/harden-ios-updater
+            full.design.document:
+              designDoc: docs/openspec/changes/harden-ios-updater/design.md
+            full.design.evidence:
+              contentHash: 93d7d1b6fc94b600d26411ce1bc9bb6ce6970154c63772c815904e013329da4b
+              ref: docs/openspec/changes/harden-ios-updater/design.md
+            full.design.handoff:
+              handoffContext: docs/openspec/changes/harden-ios-updater/.comet/handoff/design-context.json
+              handoffHash: 427198dfab2cdcde3ba10227dc3fcdb642bc98385a77dc216cdd214980238c29
+              proposal: >-
+                技术方案：
+
+                1. 排除规则按模式是否含 / 区分：无 / 只匹配部署根目录，含 / 匹配完整相对路径；写入 custom/ 模板并保护根目录
+                *.custom.yaml。
+
+                2. Release 按标题（万象拼音输入方案、词库/实时全量预览）+ tag 正则选择；移除 sort
+                -V，改为逐段数值比较；标题未命中时按 tag 回退并告警。
+
+                3. HTTP 使用 curl -fSL --retry / wget 重试；失败删除残包；应用前做大小 + sha256
+                校验；无哈希工具时告警降级，不判失败。
+
+                4. 方案新增
+                custom/.scheme_sha256：同版本哈希不同则更新、记录缺失则更新一次、本地版本更高不降级、全部一致则跳过。
+
+                5. 通用解压根：解压目录只有一个顶层目录时剥离，方案与词库共用。
+
+                6. 词库先校验后解压覆盖；dicts/ 缺失或为空强制更新。
+
+                7. 模型下载前比对本地文件哈希；下载到部署目录内临时文件，校验后 mv 原子替换。
+
+                8. 参数解析前移：--help/--doctor 不依赖 jq；带值参数检查缺值；--depdir 按路径含
+                RimeUserData 推断元书，否则仓。
+
+                9. CNB page_size=100、GitHub per_page=100，方案/词库共享 GitHub releases
+                缓存；移除 TOOLS_API。
+
+                10. 保持 bash 3.2/BSD 兼容，不新增依赖；方案更新成功后清理 build/；保留旧方案文件和用户数据。
+
+
+                关键取舍与风险：首次升级因哈希记录缺失会执行一次方案更新；无哈希工具时仅大小校验；CNB 分页参数或上游标题变化均有回退与告警。
+
+
+                测试策略：bash -n 与 bash 3.2 兼容检查；fixture 验证 release 选择、版本比较、哈希判定；真实
+                zip 验证排除语义、解压根、build/ 清理与用户文件保留；故障注入 404/截断/坏哈希；CNB 与 GitHub
+                各一次端到端实测，模型验证已最新则跳过。
+
+
+                Spec Patch：无。
+              requirementsEvidence:
+                contentHash: 5d6390d110bd56efe507e19e10469f4c13ddaaa613019827791683ee4a73dc8e
+                ref: docs/openspec/changes/harden-ios-updater
+              sourceEvidence:
+                contentHash: 85d803c3a354933ac78c547d2d39a09cd423667985617bb754957c13cc2a0bb8
+                ref: docs/openspec/changes/harden-ios-updater
+            full.open:
+              event: open-complete
+            full.open.confirm:
+              choice: approved
+              proposal:
+                input:
+                  change: harden-ios-updater
+                  changeDir: docs/openspec/changes/harden-ios-updater
+                outputs:
+                  full.open:
+                    event: open-complete
+                  full.open.evidence:
+                    contentHash: 8be227c5c2267038dd1cc8b27f9ebd88c90bbee6085cbf52e1837e27193210f9
+                    ref: docs/openspec/changes/harden-ios-updater
+            full.open.evidence:
+              contentHash: 8be227c5c2267038dd1cc8b27f9ebd88c90bbee6085cbf52e1837e27193210f9
+              ref: docs/openspec/changes/harden-ios-updater
+            full.open.revalidate:
+              contentHash: 8be227c5c2267038dd1cc8b27f9ebd88c90bbee6085cbf52e1837e27193210f9
+            full.verify.run:
+              event: verify-fail
+              reason: "最终集成审查发现 2 个 IMPORTANT: GitHub release 未分页; 方案记录缺失且远端无 sha256
+                时误跳过。另修复校验缺口与测试强度。"
+        inputHash: 1063127b7ceb06d9fd167155a9f5b18b1acf16b17652cde9cea50ccfcfefd298
+        protocolVersion: 1
+        receipts: []
+        reconciliations: []
+        ref: comet-build
+        requiredCapabilities: []
+        retry: manual
+        runId: harden-ios-updater
+        status: pending
+        stepId: full.build.plan
         type: invoke_skill
     actionContexts:
       harden-ios-updater:1:
@@ -1990,6 +2199,211 @@ run_checkpoint:
             value:
               contentHash: 8be227c5c2267038dd1cc8b27f9ebd88c90bbee6085cbf52e1837e27193210f9
         sequence: 16
+      harden-ios-updater:17:
+        results:
+          full.build.check:
+            sequence: 14
+            value:
+              argv:
+                - bash
+                - tests/test-wanxiang-update.sh
+              changedDuringExecution: []
+              checkEpoch: 2
+              contentHash: a37891dc8a0c405603e5434d4a125e765e87a6d72a053dc1253c88d82230eea3
+              cwd: .
+              environment: ba86e99c2ccdc82ab6c128ce894e7c25f2761c81d549d9dac467ed130e494d0f
+              exitCode: 0
+              inputAfter: 87d5b403d850c0a8ff65e896b25887b130f9c3629cafa304e2e315a8402b29e4
+              inputBefore: 87d5b403d850c0a8ff65e896b25887b130f9c3629cafa304e2e315a8402b29e4
+              manifestHash: f6fe0bfc9e1af4e47e82c7d62bdd0b4c299dc182379702d5982364f223c6149c
+              manifestRef: .comet/runtime/classic-sdk-checks/efa5030dbfaa830412047ef5e022ba09e2e279e4100a13a4400c0c1b38a71558/c5303ead-6a7d-4003-beac-52b235927327.manifest
+              receiptRef: .comet/runtime/classic-sdk-checks/efa5030dbfaa830412047ef5e022ba09e2e279e4100a13a4400c0c1b38a71558/efb60fbc-0ef5-48ae-a9bd-a4fe68906405.log
+              reusable: true
+              reused: false
+              scope: build
+              tier: full
+              timeoutMs: 300000
+          full.build.check.evidence:
+            sequence: 15
+            value:
+              contentHash: a37891dc8a0c405603e5434d4a125e765e87a6d72a053dc1253c88d82230eea3
+              ref: .comet/runtime/classic-sdk-checks/efa5030dbfaa830412047ef5e022ba09e2e279e4100a13a4400c0c1b38a71558/efb60fbc-0ef5-48ae-a9bd-a4fe68906405.log
+          full.build.configure:
+            sequence: 9
+            value:
+              boundBranch: main
+              buildMode: autonomous
+              directOverride: false
+              isolation: current
+              reviewMode: standard
+              subagentDispatch: null
+              tddMode: tdd
+          full.build.confirm:
+            sequence: 10
+            value:
+              choice: approved
+              proposal:
+                input:
+                  change: harden-ios-updater
+                  changeDir: docs/openspec/changes/harden-ios-updater
+                outputs:
+                  full.build.configure:
+                    boundBranch: main
+                    buildMode: autonomous
+                    directOverride: false
+                    isolation: current
+                    reviewMode: standard
+                    subagentDispatch: null
+                    tddMode: tdd
+          full.build.execute:
+            sequence: 13
+            value:
+              event: build-complete
+          full.build.plan:
+            sequence: 11
+            value:
+              designEvidence:
+                contentHash: 93d7d1b6fc94b600d26411ce1bc9bb6ce6970154c63772c815904e013329da4b
+                ref: docs/openspec/changes/harden-ios-updater/design.md
+              plan: docs/superpowers/plans/2026-10-26-harden-ios-updater.md
+              planEvidence:
+                contentHash: cf949363a9fd6629f3b973ec2ad63a20019ea37f83f5d667cff038c0a5f81e09
+                ref: docs/superpowers/plans/2026-10-26-harden-ios-updater.md
+              taskRevision: 3f884e7af2745af3ea50085754c0436e7ca459df9cc5c29240cd5dda36cfb053
+          full.build.plan.evidence:
+            sequence: 12
+            value:
+              contentHash: cf949363a9fd6629f3b973ec2ad63a20019ea37f83f5d667cff038c0a5f81e09
+              ref: docs/superpowers/plans/2026-10-26-harden-ios-updater.md
+          full.design.confirm:
+            sequence: 6
+            value:
+              choice: approved
+              proposal:
+                input:
+                  change: harden-ios-updater
+                  changeDir: docs/openspec/changes/harden-ios-updater
+                outputs:
+                  full.design.handoff:
+                    handoffContext: docs/openspec/changes/harden-ios-updater/.comet/handoff/design-context.json
+                    handoffHash: 427198dfab2cdcde3ba10227dc3fcdb642bc98385a77dc216cdd214980238c29
+                    proposal: |-
+                      技术方案：
+                      1. 排除规则按模式是否含 / 区分：无 / 只匹配部署根目录，含 / 匹配完整相对路径；写入 custom/ 模板并保护根目录 *.custom.yaml。
+                      2. Release 按标题（万象拼音输入方案、词库/实时全量预览）+ tag 正则选择；移除 sort -V，改为逐段数值比较；标题未命中时按 tag 回退并告警。
+                      3. HTTP 使用 curl -fSL --retry / wget 重试；失败删除残包；应用前做大小 + sha256 校验；无哈希工具时告警降级，不判失败。
+                      4. 方案新增 custom/.scheme_sha256：同版本哈希不同则更新、记录缺失则更新一次、本地版本更高不降级、全部一致则跳过。
+                      5. 通用解压根：解压目录只有一个顶层目录时剥离，方案与词库共用。
+                      6. 词库先校验后解压覆盖；dicts/ 缺失或为空强制更新。
+                      7. 模型下载前比对本地文件哈希；下载到部署目录内临时文件，校验后 mv 原子替换。
+                      8. 参数解析前移：--help/--doctor 不依赖 jq；带值参数检查缺值；--depdir 按路径含 RimeUserData 推断元书，否则仓。
+                      9. CNB page_size=100、GitHub per_page=100，方案/词库共享 GitHub releases 缓存；移除 TOOLS_API。
+                      10. 保持 bash 3.2/BSD 兼容，不新增依赖；方案更新成功后清理 build/；保留旧方案文件和用户数据。
+
+                      关键取舍与风险：首次升级因哈希记录缺失会执行一次方案更新；无哈希工具时仅大小校验；CNB 分页参数或上游标题变化均有回退与告警。
+
+                      测试策略：bash -n 与 bash 3.2 兼容检查；fixture 验证 release 选择、版本比较、哈希判定；真实 zip 验证排除语义、解压根、build/ 清理与用户文件保留；故障注入 404/截断/坏哈希；CNB 与 GitHub 各一次端到端实测，模型验证已最新则跳过。
+
+                      Spec Patch：无。
+                    requirementsEvidence:
+                      contentHash: 5d6390d110bd56efe507e19e10469f4c13ddaaa613019827791683ee4a73dc8e
+                      ref: docs/openspec/changes/harden-ios-updater
+                    sourceEvidence:
+                      contentHash: 85d803c3a354933ac78c547d2d39a09cd423667985617bb754957c13cc2a0bb8
+                      ref: docs/openspec/changes/harden-ios-updater
+          full.design.document:
+            sequence: 7
+            value:
+              designDoc: docs/openspec/changes/harden-ios-updater/design.md
+          full.design.evidence:
+            sequence: 8
+            value:
+              contentHash: 93d7d1b6fc94b600d26411ce1bc9bb6ce6970154c63772c815904e013329da4b
+              ref: docs/openspec/changes/harden-ios-updater/design.md
+          full.design.handoff:
+            sequence: 5
+            value:
+              handoffContext: docs/openspec/changes/harden-ios-updater/.comet/handoff/design-context.json
+              handoffHash: 427198dfab2cdcde3ba10227dc3fcdb642bc98385a77dc216cdd214980238c29
+              proposal: >-
+                技术方案：
+
+                1. 排除规则按模式是否含 / 区分：无 / 只匹配部署根目录，含 / 匹配完整相对路径；写入 custom/ 模板并保护根目录
+                *.custom.yaml。
+
+                2. Release 按标题（万象拼音输入方案、词库/实时全量预览）+ tag 正则选择；移除 sort
+                -V，改为逐段数值比较；标题未命中时按 tag 回退并告警。
+
+                3. HTTP 使用 curl -fSL --retry / wget 重试；失败删除残包；应用前做大小 + sha256
+                校验；无哈希工具时告警降级，不判失败。
+
+                4. 方案新增
+                custom/.scheme_sha256：同版本哈希不同则更新、记录缺失则更新一次、本地版本更高不降级、全部一致则跳过。
+
+                5. 通用解压根：解压目录只有一个顶层目录时剥离，方案与词库共用。
+
+                6. 词库先校验后解压覆盖；dicts/ 缺失或为空强制更新。
+
+                7. 模型下载前比对本地文件哈希；下载到部署目录内临时文件，校验后 mv 原子替换。
+
+                8. 参数解析前移：--help/--doctor 不依赖 jq；带值参数检查缺值；--depdir 按路径含
+                RimeUserData 推断元书，否则仓。
+
+                9. CNB page_size=100、GitHub per_page=100，方案/词库共享 GitHub releases
+                缓存；移除 TOOLS_API。
+
+                10. 保持 bash 3.2/BSD 兼容，不新增依赖；方案更新成功后清理 build/；保留旧方案文件和用户数据。
+
+
+                关键取舍与风险：首次升级因哈希记录缺失会执行一次方案更新；无哈希工具时仅大小校验；CNB 分页参数或上游标题变化均有回退与告警。
+
+
+                测试策略：bash -n 与 bash 3.2 兼容检查；fixture 验证 release 选择、版本比较、哈希判定；真实
+                zip 验证排除语义、解压根、build/ 清理与用户文件保留；故障注入 404/截断/坏哈希；CNB 与 GitHub
+                各一次端到端实测，模型验证已最新则跳过。
+
+
+                Spec Patch：无。
+              requirementsEvidence:
+                contentHash: 5d6390d110bd56efe507e19e10469f4c13ddaaa613019827791683ee4a73dc8e
+                ref: docs/openspec/changes/harden-ios-updater
+              sourceEvidence:
+                contentHash: 85d803c3a354933ac78c547d2d39a09cd423667985617bb754957c13cc2a0bb8
+                ref: docs/openspec/changes/harden-ios-updater
+          full.open:
+            sequence: 1
+            value:
+              event: open-complete
+          full.open.confirm:
+            sequence: 3
+            value:
+              choice: approved
+              proposal:
+                input:
+                  change: harden-ios-updater
+                  changeDir: docs/openspec/changes/harden-ios-updater
+                outputs:
+                  full.open:
+                    event: open-complete
+                  full.open.evidence:
+                    contentHash: 8be227c5c2267038dd1cc8b27f9ebd88c90bbee6085cbf52e1837e27193210f9
+                    ref: docs/openspec/changes/harden-ios-updater
+          full.open.evidence:
+            sequence: 2
+            value:
+              contentHash: 8be227c5c2267038dd1cc8b27f9ebd88c90bbee6085cbf52e1837e27193210f9
+              ref: docs/openspec/changes/harden-ios-updater
+          full.open.revalidate:
+            sequence: 4
+            value:
+              contentHash: 8be227c5c2267038dd1cc8b27f9ebd88c90bbee6085cbf52e1837e27193210f9
+          full.verify.run:
+            sequence: 16
+            value:
+              event: verify-fail
+              reason: "最终集成审查发现 2 个 IMPORTANT: GitHub release 未分页; 方案记录缺失且远端无 sha256
+                时误跳过。另修复校验缺口与测试强度。"
+        sequence: 17
       harden-ios-updater:4:
         results:
           full.open:
@@ -3355,8 +3769,14 @@ run_checkpoint:
         sequence: 4
         value:
           contentHash: 8be227c5c2267038dd1cc8b27f9ebd88c90bbee6085cbf52e1837e27193210f9
+      full.verify.run:
+        sequence: 16
+        value:
+          event: verify-fail
+          reason: "最终集成审查发现 2 个 IMPORTANT: GitHub release 未分页; 方案记录缺失且远端无 sha256
+            时误跳过。另修复校验缺口与测试强度。"
     children: []
     lineage: []
-  sourceRevision: 24
-  sourceHash: 3c3b573a4acefcd79a71a67f520825b5db720cc866b26346fd3e4176a85f5d24
-check_epoch: 3
+  sourceRevision: 26
+  sourceHash: d362289c143d2b08e160bd9f63241f5a52cf0f68d533559b0adc9af4c13c7c6b
+check_epoch: 4

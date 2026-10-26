@@ -212,6 +212,18 @@ test_hash_tool_absent_degrades() {
   assert_exists "$file" "hash_tool_absent: file kept"
 }
 
+test_unverifiable_without_hash_tool() {
+  local file rc
+  load_script
+  HASH_TOOL_READY="true"
+  HASH_TOOL=""
+  file="$TEST_TMP/unverifiable.bin"
+  printf 'hello' >"$file"
+  rc=0; ( verify_file_size_hash "$file" "unknown" "deadbeef" "test" ) >/dev/null 2>&1 || rc=$?
+  [[ "$rc" -ne 0 ]] && pass "verify_unverifiable: rejected" || fail "verify_unverifiable: rejected" "rc=$rc"
+  assert_absent "$file" "verify_unverifiable: file removed"
+}
+
 test_empty_and_unverifiable_rejected() {
   local file rc
   load_script
@@ -265,7 +277,7 @@ test_cnb_page_size() {
 }
 
 test_github_per_page_shared_cache() {
-  local urls count
+  local urls count before
   urls="$TEST_TMP/github_urls"
   count="$TEST_TMP/github_count"
   : >"$urls"
@@ -277,13 +289,44 @@ test_github_per_page_shared_cache() {
     local n
     n=$(cat "$count"); printf '%s\n' "$((n + 1))" >"$count"
     printf '%s\n' "$1" >>"$urls"
-    printf '[{"tag_name":"v18.1.8","name":"v18.1.8-Rime万象拼音输入方案","assets":[]}]\n' >"$2"
+    case "$1" in
+      *page=1\&per_page*) printf '[{"tag_name":"v18.1.8","name":"v18.1.8-Rime万象拼音输入方案","assets":[]}]\n' >"$2" ;;
+      *) printf '[]\n' >"$2" ;;
+    esac
     return 0
   }
   cache_github "github_releases.json" "$SCHEMA_API"
+  before=$(cat "$count")
   cache_github "github_releases.json" "$SCHEMA_API"
   assert_contains "$(cat "$urls")" "per_page=100" "github_per_page: per_page=100"
-  assert_eq "1" "$(cat "$count")" "github_per_page: shared cache"
+  assert_eq "$before" "$(cat "$count")" "github_per_page: shared cache"
+}
+
+test_github_pagination_merge() {
+  local urls count merged rc
+  urls="$TEST_TMP/gh_pages_urls"
+  count="$TEST_TMP/gh_pages_count"
+  : >"$urls"
+  printf '0\n' >"$count"
+  load_script
+  TEMP_DIR=$(new_temp)
+  http_get() {
+    local n
+    n=$(cat "$count"); printf '%s\n' "$((n + 1))" >"$count"
+    printf '%s\n' "$1" >>"$urls"
+    case "$1" in
+      *page=1\&per_page*) printf '[{"tag_name":"v1"},{"tag_name":"v2"}]\n' >"$2" ;;
+      *page=2\&per_page*) printf '[{"tag_name":"v3"}]\n' >"$2" ;;
+      *) printf '[]\n' >"$2" ;;
+    esac
+    return 0
+  }
+  rc=0; ( cache_github "gh.json" "https://example.invalid/releases" ) || rc=$?
+  assert_rc 0 "$rc" "github_pagination: cache succeeded"
+  merged=$(jq 'length' "$TEMP_DIR/gh.json")
+  assert_eq "3" "$merged" "github_pagination: merged across pages"
+  assert_eq "3" "$(cat "$count")" "github_pagination: stopped at empty page"
+  assert_contains "$(cat "$urls")" "page=2" "github_pagination: requested page 2"
 }
 
 test_release_select_by_title() {
@@ -341,20 +384,25 @@ JSON
 # ---------------- 4. 部署识别与兼容 ----------------
 
 test_cnb_pagination_merge() {
-  local merged
+  local merged urls
+  urls="$TEST_TMP/cnb_pages_urls"
+  : >"$urls"
   load_script
   TEMP_DIR=$(new_temp)
   CNB_API="https://example.invalid/releases"
   http_get() {
+    printf '%s\n' "$1" >>"$urls"
     case "$1" in
-      *page=1*) printf '{"releases":[{"tag_ref":"refs/tags/v1","title":"a"},{"tag_ref":"refs/tags/v2","title":"b"}]}\n' >"$2" ;;
+      *page=1\&page_size*) printf '{"releases":[{"tag_ref":"refs/tags/v1","title":"a"},{"tag_ref":"refs/tags/v2","title":"b"}]}\n' >"$2" ;;
+      *page=2\&page_size*) printf '{"releases":[{"tag_ref":"refs/tags/v3","title":"c"}]}\n' >"$2" ;;
       *) printf '{"releases":[]}\n' >"$2" ;;
     esac
     return 0
   }
   cache_cnb
   merged=$(jq '.releases | length' "$TEMP_DIR/cnb.json")
-  assert_eq "2" "$merged" "cnb_pagination: merged across pages"
+  assert_eq "3" "$merged" "cnb_pagination: merged across pages"
+  assert_eq "3" "$(wc -l <"$urls" | tr -d ' ')" "cnb_pagination: stopped at empty page"
 }
 
 test_depdir_engine_inference() {
@@ -381,6 +429,7 @@ test_scheme_decision_cases() {
   assert_eq "skip" "$(scheme_decision v18.1.8 aa v18.1.8 aa)" "scheme_decision: same version same hash"
   assert_eq "update" "$(scheme_decision v18.1.8 aa v18.1.8 bb)" "scheme_decision: same version different hash"
   assert_eq "update" "$(scheme_decision v18.1.8 aa v18.1.8 '')" "scheme_decision: record missing"
+  assert_eq "update" "$(scheme_decision v18.1.8 '' v18.1.8 '')" "scheme_decision: record missing without remote hash"
   assert_eq "downgrade" "$(scheme_decision v18.1.7 aa v18.1.8 bb)" "scheme_decision: local newer"
   assert_eq "skip" "$(scheme_decision v18.1.8 '' v18.1.8 aa)" "scheme_decision: no remote hash"
   assert_eq "unknown" "$(scheme_decision bad aa v18.1.8 bb)" "scheme_decision: invalid version"
@@ -433,6 +482,53 @@ test_scheme_root_and_build_cleanup() {
   printf 'x\n' >"$bad/a/file.yaml"
   rc=0; ( apply_scheme_files "$bad" "$TEST_TMP/deploy-bad" "$exclude" ) >/dev/null 2>&1 || rc=$?
   [[ "$rc" -ne 0 ]] && pass "scheme_apply: malformed package rejected" || fail "scheme_apply: malformed package rejected" "rc=$rc"
+}
+
+test_scheme_update_success() {
+  local tmp deploy json zip hash size rc
+  load_script
+  tmp=$(new_temp); TEMP_DIR="$tmp"
+  deploy="$TEST_TMP/deploy-scheme-ok"; DEPLOY_DIR="$deploy"; mkdir -p "$deploy/custom"
+  EXCLUDE_FILE="$deploy/custom/user_exclude_file.txt"
+  : >"$EXCLUDE_FILE"
+  zip="$tmp/pkg.zip"
+  make_zip_with_topdir "$zip" "pkg" "default.yaml" "scheme-content"
+  hash=$(sha_of "$zip")
+  size=$(wc -c <"$zip" | tr -d ' ')
+  json="$tmp/cnb.json"
+  cat >"$json" <<JSON
+{"releases":[{"tag_ref":"refs/tags/v18.1.8","title":"v18.1.8-Rime万象拼音输入方案","body":"","assets":[{"name":"rime-wanxiang-flypy-fuzhu.zip","size_in_byte":$size,"path":"/x/pkg.bin","hash_algo":"sha256","hash_value":"sha256:$hash"}]}]}
+JSON
+  cache_cnb() { return 0; }
+  http_get_progress() { cp "$zip" "$2"; }
+  rc=0; ( update_schema cnb flypy pro ) >/dev/null 2>&1 || rc=$?
+  assert_rc 0 "$rc" "scheme_success: update succeeded"
+  assert_eq "scheme-content" "$(cat "$deploy/default.yaml")" "scheme_success: files applied"
+  assert_eq "$hash" "$(cat "$deploy/custom/.scheme_sha256")" "scheme_success: record written"
+}
+
+test_scheme_record_write_failure() {
+  local tmp deploy json zip hash size rc
+  load_script
+  tmp=$(new_temp); TEMP_DIR="$tmp"
+  deploy="$TEST_TMP/deploy-scheme-ro"; DEPLOY_DIR="$deploy"
+  mkdir -p "$deploy/custom/.scheme_sha256"
+  EXCLUDE_FILE="$deploy/custom/user_exclude_file.txt"
+  : >"$EXCLUDE_FILE"
+  zip="$tmp/pkg.zip"
+  make_zip_with_topdir "$zip" "pkg" "default.yaml" "scheme-content"
+  hash=$(sha_of "$zip")
+  size=$(wc -c <"$zip" | tr -d ' ')
+  json="$tmp/cnb.json"
+  cat >"$json" <<JSON
+{"releases":[{"tag_ref":"refs/tags/v18.1.8","title":"v18.1.8-Rime万象拼音输入方案","body":"","assets":[{"name":"rime-wanxiang-flypy-fuzhu.zip","size_in_byte":$size,"path":"/x/pkg.bin","hash_algo":"sha256","hash_value":"sha256:$hash"}]}]}
+JSON
+  cache_cnb() { return 0; }
+  http_get_progress() { cp "$zip" "$2"; }
+  UPDATE_FAILED="false"
+  rc=0; update_schema cnb flypy pro >/dev/null 2>&1 || rc=$?
+  [[ "$rc" -ne 0 ]] && pass "scheme_record_fail: nonzero" || fail "scheme_record_fail: nonzero" "rc=$rc"
+  assert_eq "true" "$UPDATE_FAILED" "scheme_record_fail: UPDATE_FAILED set"
 }
 
 test_scheme_bad_hash_no_change() {
@@ -745,18 +841,22 @@ TESTS=(
   test_http_404_removes_partial
   test_hash_normalize_and_verify
   test_hash_tool_absent_degrades
+  test_unverifiable_without_hash_tool
   test_empty_and_unverifiable_rejected
   test_partial_download_fails
   test_version_compare_portable
   test_cnb_page_size
   test_cnb_pagination_merge
   test_github_per_page_shared_cache
+  test_github_pagination_merge
   test_release_select_by_title
   test_asset_suffix_fallback
   test_depdir_engine_inference
   test_scheme_decision_cases
   test_exclude_root_only
   test_scheme_root_and_build_cleanup
+  test_scheme_update_success
+  test_scheme_record_write_failure
   test_scheme_bad_hash_no_change
   test_dict_bad_hash_keeps_existing
   test_dict_topdir_stripped

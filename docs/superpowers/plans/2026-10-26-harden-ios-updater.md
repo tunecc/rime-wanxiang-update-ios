@@ -235,6 +235,60 @@ base-ref: af5ae0540c80f8b4137d3c872514294fa3cd2c5e
 - GREEN：人工核对 `--help`/`--doctor` 输出与注释一致。
 - 验收：文档与实现无偏差。
 
+## 7. 复审修复（Verify 返回 Build）
+
+Verify 最终集成审查发现 2 个 IMPORTANT（GitHub release 未分页；方案记录缺失且远端无 sha256 时误跳过）与 2 个可修复 WARNING（大小无法比较时校验失效；记录写入未检查）。本节任务只修复这些问题与对应测试强度，不改变已确认的 CLI、默认行为和排除语义。
+
+### 任务 7.1 GitHub releases 分页
+<!-- comet-task-ref:e88067f3-5b33-4368-910d-25ba03cdbea4 -->
+
+- 范围：`cache_github` 按 `page=N&per_page=100` 循环请求并合并 `.` 数组，安全上限 100 页；方案与词库仍共用 `github_releases.json`；模型 `tags/LTS` 端点不分页。
+- 依赖：3.1。
+- 实现要点：复用 CNB 分页的合并与错误检测模式；每页为数组且非空时继续，空数组或请求失败时结束并保留已合并结果；达到上限报错。
+- RED：新增 `github_pagination_merge` 用例，fake curl 按 `page` 返回 1/2/3 页，断言合并数量与请求次数，当前单次请求实现失败。
+- GREEN：测试通过；已有 `github_single_request` 仍通过。
+- 验收：GitHub 414 条 release 可完整抓取，且一次运行只抓一次列表。
+
+### 任务 7.2 方案判定记录缺失分支
+<!-- comet-task-ref:cff45634-ab37-48b7-91c1-1719cd94ed3a -->
+
+- 范围：`scheme_decision` 在本地记录缺失时返回 `update`，不受远端哈希是否为空影响。
+- 依赖：4.1。
+- 实现要点：先判本地版本；同版本时 `[[ -z "$local_hash" ]]` 直接 `update`；有记录且远端无哈希时按版本 `skip`。
+- RED：扩展 `scheme_decision_cases`，新增 `v18.1.8 '' v18.1.8 aa` 期望 `update`，当前实现返回 `skip`。
+- GREEN：全部用例通过。
+- 验收：记录缺失只触发一次更新用于补模板与记录。
+
+### 任务 7.3 校验缺口
+<!-- comet-task-ref:859267d8-3b34-4431-a031-81d1d845c1aa -->
+
+- 范围：`verify_file_size_hash` 在大小无法比较且无哈希工具时返回非零并删除文件。
+- 依赖：2.2。
+- 实现要点：记录是否实际完成大小校验；哈希工具缺失且大小也未校验时视为失败；仅大小校验成功时保持降级通过。
+- RED：新增 `unverifiable_without_hash_tool`，远端大小非数字并隐藏哈希工具，断言返回非零且文件被删除；当前实现返回 0。
+- GREEN：测试通过；`hash_tool_absent_degrades` 仍通过。
+- 验收：未经任何校验的文件不进入应用阶段。
+
+### 任务 7.4 记录写入失败处理
+<!-- comet-task-ref:2ea7a52a-a07f-4cc2-8357-28472613a37e -->
+
+- 范围：方案与模型哈希记录写入失败时设置 `UPDATE_FAILED` 并报错。
+- 依赖：4.1、5.2。
+- 实现要点：`printf > file` 后检查返回码；失败时 `log ERROR` 并 `UPDATE_FAILED="true"`，不中断其他组件更新。
+- RED：无独立测试（只读 `custom/` 在 root 下不可靠），由代码审查核对。
+- GREEN：现有测试全绿。
+- 验收：记录无法写入时不会静默报告成功。
+
+### 任务 7.5 测试补强
+<!-- comet-task-ref:90a9a0b0-2f14-4a04-9d33-5fb5e7d4f452 -->
+
+- 范围：CNB 分页用例改为第 1、2 页均非空第 3 页空；新增 GitHub 分页、方案成功更新用例。
+- 依赖：7.1-7.4。
+- 实现要点：`test_cnb_pagination_merge` 增加第 2 页数据并断言 3 条；`test_scheme_update_success` 用 zip fixture 验证明文落盘与记录写入；`test_scheme_decision_cases` 覆盖记录缺失。
+- RED：新断言在当前实现下失败（CNB 单页实现也能通过旧断言，需先强化）。
+- GREEN：`bash tests/test-wanxiang-update.sh` 与 `/bin/bash tests/test-wanxiang-update.sh` 均 0 失败。
+- 验收：分页与方案成功路径有真实覆盖。
+
 ## 风险与回退
 
 - 首次升级会执行一次方案更新：预期行为；回退只需恢复旧脚本，哈希记录会被忽略。
