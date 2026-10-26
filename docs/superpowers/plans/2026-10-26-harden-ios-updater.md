@@ -2,6 +2,7 @@
 change: harden-ios-updater
 design-doc: docs/openspec/changes/harden-ios-updater/design.md
 base-ref: af5ae0540c80f8b4137d3c872514294fa3cd2c5e
+archived-with: 2026-10-26-harden-ios-updater
 ---
 
 <!-- comet-task-authority: docs/openspec/changes/harden-ios-updater/tasks.md -->

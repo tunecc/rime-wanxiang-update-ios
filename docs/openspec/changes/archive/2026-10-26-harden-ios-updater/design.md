@@ -2,6 +2,8 @@
 comet_change: harden-ios-updater
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-10-26-harden-ios-updater
+status: final
 ---
 
 # 设计：加固 iOS 万象更新脚本
