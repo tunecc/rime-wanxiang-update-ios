@@ -1,0 +1,16 @@
+{
+  "change": "harden-ios-updater",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "task_hash_policy": "task-content-v1",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "427198dfab2cdcde3ba10227dc3fcdb642bc98385a77dc216cdd214980238c29",
+  "files": [
+    { "path": "docs/openspec/changes/harden-ios-updater/proposal.md", "sha256": "02eaf99d9d31bf7e3a32da00af714cb5e276a0a91c230dafcafcb38ab291138f" },
+    { "path": "docs/openspec/changes/harden-ios-updater/design.md", "sha256": "93d7d1b6fc94b600d26411ce1bc9bb6ce6970154c63772c815904e013329da4b" },
+    { "path": "docs/openspec/changes/harden-ios-updater/tasks.md", "sha256": "3f884e7af2745af3ea50085754c0436e7ca459df9cc5c29240cd5dda36cfb053" },
+    { "path": "docs/openspec/changes/harden-ios-updater/.openspec.yaml", "sha256": "63c33196de2338bdf6e21f3250c142e14ca5861ffa1e6f6d57f9775f783b11ac" },
+    { "path": "docs/openspec/changes/harden-ios-updater/specs/wanxiang-ios-updater/spec.md", "sha256": "fb817731d6926c963ba3b61d95dbe3a0ef1e5284a356e2e2610abd63d7c8e32c" }
+  ]
+}
